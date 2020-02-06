@@ -6,11 +6,33 @@
 	// var_dump($values); // test $values , is empty array
 
 
-	// $json = ($item->fieldvalues['23']);
-	// $encode = json_encode($json, true);
+	// $localisation = ($item->fieldvalues[23][0]);
+	// var_dump($localisation);
+
+	// $encode = json_encode($localisation);
 	// var_dump($encode);
-	// var_dump(json_decode($encode));
-	// var_dump($json);
+
+	// $decode = json_decode($encode);
+	// var_dump($decode);
+
+
+// $url = unserialize($item->fieldvalues[23][0]);
+// var_dump($url);
+// $encode = json_encode($url);
+// var_dump($encode);
+// $decode = json_decode($encode);
+// var_dump($decode);
+// var_dump($url['addr_display']);
+
+// $url['addr_display'];
+// var_dump($url['addr_display']);
+
+
+     // $encodeLocationGoogleCalendar = json_encode($locationGoogleCalendar );
+        // var_dump($encodeLocationGoogleCalendar);
+        // $decodeLocationGoogleCalendar = json_decode($encodeLocationGoogleCalendar);
+        // var_dump($decodeLocationGoogleCalendar);
+
 
 
 

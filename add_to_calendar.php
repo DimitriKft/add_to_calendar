@@ -65,23 +65,22 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
         // Get field values
         //$values = $values ? $values : $field->value;
         $values = $this->parseValues($field->value);
-        
         $field->value                         = array();
         $field->value[0]['title_event']       = '';
         $field->value[0]['start_date_event']  = '';
         $field->value[0]['end_date_event']    = '';
         $field->value[0]['description_event'] = '';
         $field->value[0]['location event']    = '';
-
+        
         $values = $field->value;
         $this->values =& $values;
         // var_dump($this->values =& $values);
         // var_dump($this->item);
         // var_dump($values);
-
+        
         // Some parameter shortcuts
         $add_to_calendar_edit_mode = $field->parameters->get('add_to_calendar_edit_mode', 1); //1 display button, 0 set to default, -1 nothing
-        var_dump($field->parameters);
+        // var_dump($field->label);
         
         // JS safe Field name
         //$field_name_js = str_replace('-', '_', $field->name);
@@ -116,26 +115,26 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
     function onBeforeSaveField(&$field, &$post, &$file, &$item)
     {
         if (!in_array($field->field_type, static::$field_types))
-            return;
+        return;
         $use_ingroup = $field->parameters->get('use_ingroup', 0);
         if (!is_array($post) && !strlen($post) && !$use_ingroup)
-            return;
-        
+        return;
         // Check if field has posted data
         if (empty($post) || !is_array($post))
-            return;
+        return;
         
-        
-        $newpost = array();
-        $new     = 0;
-
-        foreach ($post as $n => $v)
-        {
-            if (empty($v))
+        var_dump($post);
+            
+            $newpost = array();
+            $new     = 0;
+            
+            foreach ($post as $n => $v)
+            {
+                if (empty($v))
                 continue;
-            // validate data or empty/set default values
+                // validate data or empty/set default values
             $newpost[$new]                      = array();
-            $newpost[$new]['title_event']       = $addr;
+            $newpost[$new]['title_event']       = $title_event;
             $newpost[$new]['start_date_event']  = $Sdate;
             $newpost[$new]['end_date_event']    = $Edate;
             $newpost[$new]['description_event'] = $desc;
@@ -143,7 +142,6 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
             $new++;
         }
         $post = $newpost;
-        // var_dump($post);
         
         // Serialize multi-property data before storing them into the DB, also map some properties as fields
         $props_to_fields = array(
@@ -156,7 +154,6 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
         // var_dump($props_to_fields);
         $_fields         = array();
         $byIds           = FlexicontentFields::indexFieldsByIds($item->fields, $item);
-        
         foreach ($post as $i => $v)
         {
             foreach ($props_to_fields as $propname)
@@ -173,10 +170,11 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
         }
         //var_dump ($post, 'post');
     }
-   
+    
     // Method to take any actions/cleanups needed after field's values are saved into the DB
     function onAfterSaveField(&$field, &$post, &$file, &$item)
     {
+        
     }
     
     
@@ -186,29 +184,31 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
     }
     
     
+    
     // Method to create field's HTML display for frontend views
     function onDisplayFieldValue(&$field, $item, $values = null, $prop = 'display')
     {
         if (!in_array($field->field_type, static::$field_types))
             return;
             $field->label = JText::_($field->label);
-            
         // Set field and item objects
         $this->setField($field);
         $this->setItem($item);
         
         // Use the custom field values, if these were provided
         $values = $values !== null ? $values : $this->field->value;
-        // var_dump($this->field->value  );
+        
         // Recover the value of the fields for google calendar
         $title_event              =  $item->fieldvalues[21][0];
         $date_startEvent          =  $item->fieldvalues[24][0];
         $date_endEvent            =  $item->fieldvalues[25][0];
         $desc_event               =  $item->fieldvalues[26][0];
-        $locationGoogleCalendar   =  $item->fieldvalues[23][0];
+        $location                 =  unserialize($item->fieldvalues[23][0]);
+        $locationEvent            =  $location['addr_display']; 
+  
         
         //  Adapt the dates according to calendar format url
-        $replaces   = array("-", ":");
+        $replaces        = array("-", ":");
         $date_startEvent = str_replace($replaces, "","$date_startEvent");
         $date_startEvent = str_replace(" ", "T",$date_startEvent);
         $date_endEvent   = str_replace($replaces, "","$date_endEvent");
@@ -216,58 +216,88 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
         
         
         // Generate google url calendar
-        function GetGoogleURL($title_event, $date_startEvent, $date_endEvent, $desc_event)
+        function GetGoogleURL($title_event, $date_startEvent, $date_endEvent, $desc_event, $locationEvent )
         {
-            $urlGoogle      = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
-            $urlGoogle .= '&text='   . $title_event;
-            $urlGoogle .= '&dates='  . $date_startEvent . '00Z/' . $date_endEvent . '00Z';
-            $urlGoogle .= '&details=' . $desc_event;
-            $urlGoogle .= '&location=';
+            $urlGoogle  = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
+            $urlGoogle .= '&text='     . $title_event;
+            $urlGoogle .= '&dates='    . $date_startEvent . '00Z/' . $date_endEvent . '00Z';
+            $urlGoogle .= '&details='  . $desc_event;
+            $urlGoogle .= '&location=' .$locationEvent ;
             return $urlGoogle;
         }
-            $urlGoogleCalendar = GetGoogleURL($title_event, $date_startEvent, $date_endEvent, $desc_event);
-            echo '<button>
-            <a href="' . $urlGoogleCalendar . '">Ajouter cette évenement à Google Calendar</a>
-                  </button>';
-        
-
+            $urlGoogleCalendar = GetGoogleURL($title_event, $date_startEvent, $date_endEvent, $desc_event,  $locationEvent );
+            $buttonGoogle =  
+                '<button>
+                <a href="' . $urlGoogleCalendar . '" target = "_blank" ><strong>calendrier Google</strong></a>
+                </button>';
+             
+    
         // Generate yahoo url calendar
-        function GetYahooURL($title_event, $date_startEvent, $date_endEvent, $desc_event)
+        function GetYahooURL($title_event, $date_startEvent, $date_endEvent, $desc_event,  $locationEvent  )
         {
-            $urlYahoo = 'http://calendar.yahoo.com/?v=60&view=d&type=20';
-            $urlYahoo .= '&title=' . $title_event;
-            $urlYahoo .= '&st='    . $date_startEvent;
-            $urlYahoo .= '&dur='   . $date_endEvent;
-            $urlYahoo .= '&desc='  . $$desc_event;
-            $urlYahoo .= '&in_loc=';
+            $urlYahoo  = 'http://calendar.yahoo.com/?v=60';
+            $urlYahoo .= '&title='  . $title_event;
+            $urlYahoo .= '&st='     . $date_startEvent;
+            $urlYahoo .= '&et='     . $date_endEvent;
+            $urlYahoo .= '&desc='   . $desc_event;
+            $urlYahoo .= '&in_loc=' . $locationEvent  ;
             return $urlYahoo;
         }
-            $urlYahoo = GetYahooURL($title_event, $date_startEvent, $date_endEvent, $desc_event);
-            echo '<br><button>
-            <a href="' . $urlYahoo. '">Ajouter cette évenement à Votre agenda YAHOO!</a>
-                  </button>';
-
+            $urlYahoo = GetYahooURL($title_event, $date_startEvent, $date_endEvent, $desc_event,  $locationEvent  );
+            $buttonYahoo = 
+                '<button>
+                <a href="' . $urlYahoo. '" target = "_blank" ><strong>calendirer Yahoo!</strong></a>
+                </button>';
+          
 
         // Generate live url calendar
-        function GetLiveURL($title_event, $date_startEvent, $date_endEvent, $desc_event)
+        function GetLiveURL($title_event, $date_startEvent, $date_endEvent, $desc_event, $locationEvent)
         {
-            $urlLive =  'https://bay02.calendar.live.com/calendar/calendar.aspx?rru=addevent';
-            $urlLive .= '&dtstart='     . $date_startEvent;
-            $urlLive .= '&dtend='       . $date_endEvent;
-            $urlLive .= '&summary='     . $title_event;
-            $urlLive .= '&location=';
-            $urlLive .= '&description=' . $desc_event;
+            $urlLive  = 'https://outlook.live.com/owa/';
+            $urlLive .= '?path=/calendar/view/Month';
+            $urlLive .= '&rru=addevent';
+            $urlLive .= '&startdt='     . $date_startEvent . '00' ;
+            $urlLive .= '&enddt='       . $date_endEvent   . '00'  ;
+            $urlLive .= '&subject='     . $title_event;
+            $urlLive .= '&body='        . $desc_event;
+            $urlLive .= '&location='    . $locationEvent;
             return   $urlLive;
         }
-            $urlLive = GetLiveURL($title_event, $date_startEvent, $date_endEvent, $desc_event);
-            echo '<br><button>
-            <a href="' . $urlLive. '">Ajouter cette évenement à Votre LIVE CALENDAR</a>
-                  </button>';
+            $urlLive = GetLiveURL($title_event, $date_startEvent, $date_endEvent, $desc_event, $locationEvent);
+            $buttonLive = 
+                '<button>
+                <a href="' . $urlLive . '" target = "_blank" ><strong>calendirer Outlook</strong></a>
+                </button>';
 
-                  
-        function GetIcsURL()
+
+        //show buttons 
+        // echo $buttonGoogle, $buttonLive, $buttonLive;   
+        $list = 
+            '<ul>
+                <li>' . $buttonGoogle . '</li>
+                <li>' . $buttonYahoo  . '</li>
+                <li>' . $buttonLive   . '</li>
+            </ul>';
+
+      echo $list;
+
+      $test = '<FORM onchange="location.href=this.value">
+       <SELECT name="nom" size="1">
+        <OPTION value="' . $buttonGoogle . '">lundi</OPTION>
+         <OPTION value="' . $buttonYahoo  . '">mardi</OPTION>
+          <OPTION value="' . $buttonLive   . '">mercredi</OPTION>
+           <OPTION value="jeudi.html">jeudi</OPTION>
+            <OPTION value="vendredi.html">vendredi</OPTION>
+             </SELECT>
+              </FORM>
+       ';
+       echo $test;
+       
+     
+
+        // generate ics url for apple device
+        function GetIcsURL($title_event, $date_startEvent, $date_endEvent, $desc_event)
         {
-            // generate ics url for apple device
             $url = array(
                 'BEGIN:VCALENDAR',
                 'VERSION:2.0',
@@ -278,14 +308,14 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
             if ($link->allDay)
             {
                 $dateTimeFormat = 'Ymd';
-                $url[]          = 'DTSTART:' . $start_date_event;
+                $url[]          = 'DTSTART:' . $date_startEvent;
                 $url[]          = 'DURATION:P1D';
             }
             else
             {
                 $dateTimeFormat = "e:Ymd\THis";
-                $url[]          = 'DTSTART;TZID=' . $start_date_event;
-                $url[]          = 'DTEND;TZID=' . $end_date_event;
+                $url[]          = 'DTSTART;TZID=' . $date_startEvent;
+                $url[]          = 'DTEND;TZID=' . $date_endEvent;
             }
             if ($link->description)
             {
@@ -293,7 +323,7 @@ class plgFlexicontent_fieldsAdd_to_calendar extends FCField
             }
             if ($link->address)
             {
-                $url[] = 'LOCATION:' . $location_event;
+                $url[] = 'LOCATION:' . $desc_event;
             }
             $url[]        = 'END:VEVENT';
             $url[]        = 'END:VCALENDAR';
